@@ -1,0 +1,85 @@
+#imports your OpenCV module
+import cv2
+
+#now we'll define a function to make boundaries to 
+#the face in any colour
+
+def draw_boundary(img, classifier, scaleFactor, minNeighbors, color, text):
+
+    #first image has to be converted to GrayScale image as most
+    #operations in OpenCV occurs in B/W
+    gray_img=cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    #detects various features in this generic function
+    #and detects all possible faces in this grayscale image
+
+    #scaleFactor scales the image and then makes it easier by arranging pixels
+    #and then detecting the face if face sizes vary
+    features=classifier.detectMultiScale(gray_img,scaleFactor,minNeighbors)
+    coords=[]
+    for (x,y,w,h) in features:
+        #we need to draw a rectangle with x y width and height
+        cv2.rectangle(img , (x,y) , (x+w, y+h) , color, 2)
+        cv2.putText(img, text, (x, y-4), cv2.FONT_HERSHEY_COMPLEX, 0.8, color,1, cv2.LINE_AA)
+        coords=[x,y,w,h]
+    
+    return coords
+
+#now we create function to detect the face using haarcascade frontal face
+def detect(img, faceCascade, eyesCascade, mouthCascade, noseCascade):
+    color ={'blue':(255,0,0),"red":(0,0,255),"green":(0,255,0), "white":(255,255,255)}
+
+    #now we pass the draw_boundary to draw the rectangle after detection
+    coords= draw_boundary(img, faceCascade, 1.1, 10, color['blue'], "Face")
+
+    # to change region of interest for eyes nose and mouth
+    # we just change the whole image to region of interest as
+    # the face bouded by the coordinates
+
+    if len(coords)==4:
+        roi_img=img[coords[1]:coords[1]+coords[3],coords[0]:coords[0]+coords[2]]
+        coords= draw_boundary(roi_img, eyesCascade, 1.1, 14, color['red'], "Eyes")
+        coords= draw_boundary(roi_img, mouthCascade, 1.1, 20, color['green'], "Mouth")
+        coords= draw_boundary(roi_img, noseCascade, 1.1, 5, color['white'], "Nose")
+    return img
+
+
+
+#video is easily captured by opencv by using
+#the default webcam
+video_capture= cv2.VideoCapture(0)
+
+#declaring faceCascade classifier:
+faceCascade= cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+eyesCascade= cv2.CascadeClassifier("haarcascade_eye.xml")
+noseCascade= cv2.CascadeClassifier("Nariz.xml")
+mouthCascade= cv2.CascadeClassifier("Mouth.xml")
+
+
+#creating an infinite loop to keep it running
+#till we want
+while True:
+    #we leave the first parameter as an underscore 
+    #as we want only images to be read by the
+    #video_capture.read() function
+    _, img= video_capture.read()
+    
+
+    img=detect(img, faceCascade, eyesCascade, mouthCascade, noseCascade)
+    #now we take the image out of the loop to
+    #show using the imshow function
+    #and give it a window name
+    #also, the second parameter being the image that 
+    #is took out of the video frame
+    cv2.imshow("Face Detection", img)
+
+    #now we create a terminating condition when "q" is pressed
+    #using if else loop and give it a delay timing 
+    #to wait till jumping to the next functionality
+    #which then gets the capture release to release the webcam
+    #henceworth destroying all the windows
+
+    if cv2.waitKey(1) & 0xFF==ord('q'):
+        break
+video_capture.release()
+cv2.destroyAllWindows()
+
